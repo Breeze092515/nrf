@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  db:
+    image: mongo
+    command: mongod --port 27017
+    expose:
+      - "27017"
+    volumes:
+      - dbdata:/data/db
+    networks:
+      privnet:
+        ipv4_address: 10.100.200.10
+        aliases:
+          - db
+    ports:
+      - "27017:27017"
+
+  free5gc-nrf:
+    image: nrf
+    container_name: nrf
+    #build:
+    #  context: .
+    #  args:
+    #    DEBUG_TOOLS: "false"
+    command: ./nrf -nrfcfg ../config/nrfcfg.yaml
+    expose:
+      - "8000"
+    volumes:
+      - ./config/nrfcfg.yaml:/free5gc/config/nrfcfg.yaml
+    environment:
+      DB_URI: mongodb://db/free5gc
+      GIN_MODE: release
+    networks:
+      privnet:
+        ipv4_address: 10.100.200.20
+        aliases:
+          - nrf.free5gc.org
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+
+networks:
+  privnet:
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.100.200.0/24
+
+volumes:
+  dbdata:
